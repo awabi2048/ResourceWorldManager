@@ -1,0 +1,37 @@
+name: ResourceGenerator
+version: '1.0-SNAPSHOT'
+main: awabi2048.resourcegenerator.ResourceGenerator
+api-version: '1.21'
+author: awabi2048
+description: 資源ワールドを生成するプラグインです。
+
+commands:
+  resource:
+    description: 資源ワールド管理コマンド
+    usage: /resource <generate|teleport>
+    permission: resource.use
+
+permissions:
+  resource.*:
+    description: ResourceGeneratorの全権限
+    children:
+      resource.use: true
+      resource.generate: true
+      resource.teleport: true
+      resource.reload: true
+  resource.use:
+    description: /resource コマンドを使用する権限
+    default: op
+  resource.generate:
+    description: 資源ワールドを生成する権限
+    default: op
+  resource.teleport:
+    description: 資源ワールドへテレポートする権限
+    default: true
+  resource.reload:
+    description: 設定を再読み込みする権限
+    default: op
+  craftercrossing.test:
+    description: テスト用権限（プラグイン内の全権限を付与）
+    children:
+      resource.*: true

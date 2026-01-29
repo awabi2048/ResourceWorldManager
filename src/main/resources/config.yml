@@ -1,0 +1,37 @@
+# 資源ワールドの設定
+# 避難先の設定 (world_name, x, y, z)
+evacuation_location:
+  world: "world"
+  x: 0
+  y: 64
+  z: 0
+
+messages:
+  broadcast_success: "§a資源ワールド【%world_name%】の生成が完了しました。"
+  console_success: "§a資源ワールド【%world_name%】の生成に成功しました。(ボーダーサイズ: %border_size%)"
+  pregen_priority_complete: "§a資源ワールド【%world_name%】の仮生成が完了し、ワープ可能になりました！"
+  pregen_all_complete: "資源ワールド【%world_name%】の全エリア生成が完了しました。"
+
+pregen:
+  priority_diameter: 1000
+  delay_ticks: 5
+  batch_size: 25
+
+scaffold:
+  material: "GLASS"
+  radius: 3
+
+resources:
+  normal:
+    base_name: "resource_normal"
+    default_border: 5000
+    variations: ["a", "b", "c"]
+  nether:
+    base_name: "resource_nether"
+    default_border: 2500
+    variations: ["a", "b"]
+  end:
+    base_name: "resource_end"
+    default_border: 3000
+    variations: ["a"]
+
