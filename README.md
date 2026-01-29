@@ -1,0 +1,2 @@
+# ResourceWorldManager
+for KotaServer/CrafterCrossing
