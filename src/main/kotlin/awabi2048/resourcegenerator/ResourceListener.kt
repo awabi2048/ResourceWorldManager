@@ -4,6 +4,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Particle
+import org.bukkit.Sound
 import org.bukkit.World
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
@@ -54,6 +55,17 @@ class ResourceListener : Listener {
 
                             // ボスバー表示更新
                             updateBossBar(player, ticks)
+
+                            // 開始音の再生 (最初の実行時)
+                            if (ticks == 2) {
+                                val soundName = ConfigManager.getSoundStart()
+                                try {
+                                    val sound = Sound.valueOf(soundName.uppercase())
+                                    player.playSound(player.location, sound, 1.0f, 1.0f)
+                                } catch (e: IllegalArgumentException) {
+                                    ResourceGenerator.instance.logger.warning("Invalid start sound name: $soundName")
+                                }
+                            }
 
                             // 3秒 (60 ticks) 経過判定
                             if (ticks >= 60) {
@@ -122,6 +134,20 @@ class ResourceListener : Listener {
     private fun teleportPlayerHome(player: Player) {
         val dest: Location = ConfigManager.getEvacuationLocation()
         player.teleport(dest)
+
+        // 成功音の再生 (1tick遅延)
+        object : BukkitRunnable() {
+            override fun run() {
+                val soundName = ConfigManager.getSoundSuccess()
+                try {
+                    val sound = Sound.valueOf(soundName.uppercase())
+                    player.playSound(player.location, sound, 1.0f, 1.0f)
+                } catch (e: IllegalArgumentException) {
+                    ResourceGenerator.instance.logger.warning("Invalid success sound name: $soundName")
+                }
+            }
+        }.runTaskLater(ResourceGenerator.instance, 1L)
+
         player.sendMessage("§a[ResourceGenerator] 資源ワールドから帰還しました。")
     }
 

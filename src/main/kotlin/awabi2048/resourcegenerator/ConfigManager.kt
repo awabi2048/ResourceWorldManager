@@ -44,6 +44,9 @@ object ConfigManager {
     private var particleSpeed: Double = 0.01
     private var particleInterval: Long = 2
 
+    private var soundStart: String = "BLOCK_NOTE_BLOCK_BELL"
+    private var soundSuccess: String = "ENTITY_EXPERIENCE_ORB_PICKUP"
+
     private val resourceConfigs = mutableMapOf<String, ResourceConfig>()
 
     /**
@@ -79,6 +82,10 @@ object ConfigManager {
         particleCount = particleSection?.getInt("count") ?: 5
         particleSpeed = particleSection?.getDouble("speed") ?: 0.01
         particleInterval = (particleSection?.getInt("interval") ?: 2).toLong()
+
+        val soundSection = scaffoldSection?.getConfigurationSection("sound")
+        soundStart = soundSection?.getString("start") ?: "BLOCK_NOTE_BLOCK_BELL"
+        soundSuccess = soundSection?.getString("success") ?: "ENTITY_EXPERIENCE_ORB_PICKUP"
 
         resourceConfigs.clear()
 
@@ -118,4 +125,7 @@ object ConfigManager {
     fun getParticleCount(): Int = particleCount
     fun getParticleSpeed(): Double = particleSpeed
     fun getParticleInterval(): Long = particleInterval
+
+    fun getSoundStart(): String = soundStart
+    fun getSoundSuccess(): String = soundSuccess
 }

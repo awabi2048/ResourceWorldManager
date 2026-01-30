@@ -25,6 +25,9 @@ scaffold:
     count: 5
     speed: 0.01
     interval: 2
+  sound:
+    start: "BLOCK_NOTE_BLOCK_BELL"
+    success: "ENTITY_EXPERIENCE_ORB_PICKUP"
 
 resources:
   normal:
