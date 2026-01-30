@@ -6,7 +6,7 @@
 
     <groupId>me.awabi2048</groupId>
     <artifactId>ResourceGenerator</artifactId>
-    <version>0.1-alpha</version>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
     <name>ResourceGenerator</name>
