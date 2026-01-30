@@ -87,8 +87,10 @@ class ResourceCommand : CommandExecutor, TabCompleter {
                     sender.sendMessage("§c権限がありません。")
                     return true
                 }
-                ResourceGenerator.instance.reloadConfig()
-                ConfigManager.load(ResourceGenerator.instance.config)
+                val plugin = ResourceGenerator.instance
+                plugin.saveDefaultConfig()
+                plugin.reloadConfig()
+                ConfigManager.load(plugin.config)
                 sender.sendMessage("§a[ResourceGenerator] 設定を再読み込みしました。")
                 return true
             }

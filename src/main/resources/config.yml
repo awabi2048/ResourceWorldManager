@@ -20,6 +20,11 @@ pregen:
 scaffold:
   material: "GLASS"
   radius: 3
+  particle:
+    type: "CLOUD"
+    count: 5
+    speed: 0.01
+    interval: 2
 
 resources:
   normal:

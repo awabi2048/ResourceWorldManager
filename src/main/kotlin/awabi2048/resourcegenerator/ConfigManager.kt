@@ -3,6 +3,7 @@ package awabi2048.resourcegenerator
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.Particle
 import org.bukkit.configuration.file.FileConfiguration
 
 /**
@@ -38,6 +39,11 @@ object ConfigManager {
     private var scaffoldMaterial: Material = Material.GLASS
     private var scaffoldRadius: Int = 3
 
+    private var particleType: Particle = Particle.CLOUD
+    private var particleCount: Int = 5
+    private var particleSpeed: Double = 0.01
+    private var particleInterval: Long = 2
+
     private val resourceConfigs = mutableMapOf<String, ResourceConfig>()
 
     /**
@@ -67,6 +73,12 @@ object ConfigManager {
         val scaffoldSection = fileConfig.getConfigurationSection("scaffold")
         scaffoldMaterial = Material.matchMaterial(scaffoldSection?.getString("material") ?: "GLASS") ?: Material.GLASS
         scaffoldRadius = scaffoldSection?.getInt("radius") ?: 3
+
+        val particleSection = scaffoldSection?.getConfigurationSection("particle")
+        particleType = Particle.valueOf(particleSection?.getString("type")?.uppercase() ?: "CLOUD")
+        particleCount = particleSection?.getInt("count") ?: 5
+        particleSpeed = particleSection?.getDouble("speed") ?: 0.01
+        particleInterval = (particleSection?.getInt("interval") ?: 2).toLong()
 
         resourceConfigs.clear()
 
@@ -101,4 +113,9 @@ object ConfigManager {
 
     fun getScaffoldMaterial(): Material = scaffoldMaterial
     fun getScaffoldRadius(): Int = scaffoldRadius
+
+    fun getParticleType(): Particle = particleType
+    fun getParticleCount(): Int = particleCount
+    fun getParticleSpeed(): Double = particleSpeed
+    fun getParticleInterval(): Long = particleInterval
 }

@@ -24,6 +24,7 @@ class ResourceListener : Listener {
     private val random = Random()
     private val sneakTicks = ConcurrentHashMap<UUID, Int>()
     private val bossBars = ConcurrentHashMap<UUID, BossBar>()
+    private var tickCounter: Long = 0
 
     init {
         // 定期的にスニーク状態と足場内判定を確認するタスク
@@ -42,8 +43,10 @@ class ResourceListener : Listener {
 
                     // 足場領域内判定
                     if (isInScaffold(player)) {
-                        // パーティクル表示
-                        spawnParticles(player.world)
+                        // パーティクル表示 (同タイミングで一度だけ実行)
+                        if (tickCounter % ConfigManager.getParticleInterval() == 0L) {
+                            spawnParticles(player.world)
+                        }
 
                         if (player.isSneaking) {
                             val ticks = sneakTicks.getOrDefault(uuid, 0) + 2 // 2 ticks per execution (10Hz)
@@ -67,6 +70,7 @@ class ResourceListener : Listener {
                         cleanupBossBar(uuid)
                     }
                 }
+                tickCounter++
             }
         }.runTaskTimer(ResourceGenerator.instance, 0L, 2L) // 0.1秒間隔
     }
@@ -90,12 +94,16 @@ class ResourceListener : Listener {
         val spawn = world.spawnLocation
         val radius = ConfigManager.getScaffoldRadius().toDouble()
         
+        val particleType = ConfigManager.getParticleType()
+        val count = ConfigManager.getParticleCount()
+        val speed = ConfigManager.getParticleSpeed()
+
         // 足場の範囲内にランダムにパーティクルを表示
-        for (i in 0 until 5) {
+        for (i in 0 until count) {
             val offsetX = (random.nextDouble() * 2 - 1) * (radius + 0.5)
             val offsetZ = (random.nextDouble() * 2 - 1) * (radius + 0.5)
             val loc = spawn.clone().add(offsetX, 0.1, offsetZ)
-            world.spawnParticle(Particle.CLOUD, loc, 1, 0.0, 0.0, 0.0, 0.01)
+            world.spawnParticle(particleType, loc, 1, 0.0, 0.0, 0.0, speed)
         }
     }
 
