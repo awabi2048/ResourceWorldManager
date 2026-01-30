@@ -224,8 +224,9 @@ object WorldManager {
         val worldsToRemove = Bukkit.getWorlds().filter { it.name.startsWith(prefix) }
         
         for (world in worldsToRemove) {
-            readyWorlds.remove(world.name)
-            pregenProgress.remove(world.name)
+            val worldName = world.name
+            readyWorlds.remove(worldName)
+            pregenProgress.remove(worldName)
             
             // プレイヤーを避難させる
             val evacuationLoc = ConfigManager.getEvacuationLocation()
@@ -237,7 +238,94 @@ object WorldManager {
             }
 
             Bukkit.unloadWorld(world, false)
-            logger.info("ワールド ${world.name} をアンロードしました。")
+            logger.info("ワールド $worldName をアンロードしました。")
+        }
+
+        // ファイルシステム上のデータを削除
+        val worldContainer = Bukkit.getWorldContainer()
+        val files = worldContainer.listFiles() ?: return
+        for (file in files) {
+            if (file.isDirectory && file.name.startsWith(prefix)) {
+                deleteWorldFolder(file)
+                logger.info("ワールドフォルダ ${file.name} を削除しました。")
+            }
+        }
+    }
+
+    private fun deleteWorldFolder(path: java.io.File) {
+        if (path.exists()) {
+            val files = path.listFiles()
+            if (files != null) {
+                for (file in files) {
+                    if (file.isDirectory) {
+                        deleteWorldFolder(file)
+                    } else {
+                        file.delete()
+                    }
+                }
+            }
+            path.delete()
+        }
+    }
+
+    /**
+     * サーバー起動時に既存の資源ワールドをロードする
+     */
+    fun loadExistingWorlds() {
+        logger.info("既存の資源ワールドをスキャンしています...")
+        val worldContainer = Bukkit.getWorldContainer()
+        val files = worldContainer.listFiles() ?: return
+        
+        val resourceConfigs = ConfigManager.getAllResourceConfigs()
+        val worldsToLoad = mutableMapOf<String, java.io.File>() // "baseName.variation" -> latest folder
+
+        for (file in files) {
+            if (!file.isDirectory) continue
+            val nameParts = file.name.split(".")
+            if (nameParts.size != 3) continue
+
+            val baseName = nameParts[0]
+            val variation = nameParts[1]
+            val dateStr = nameParts[2]
+
+            // 対応する設定があるか確認
+            val configEntry = resourceConfigs.entries.find { it.value.baseName == baseName } ?: continue
+            if (!configEntry.value.variations.contains(variation)) continue
+
+            val key = "$baseName.$variation"
+            val existing = worldsToLoad[key]
+            if (existing == null || file.name > existing.name) {
+                // 古い方は削除対象（または単に無視）
+                if (existing != null) {
+                    logger.info("古い資源ワールド ${existing.name} をスキップします。")
+                }
+                worldsToLoad[key] = file
+            }
+        }
+
+        for ((key, folder) in worldsToLoad) {
+            val worldName = folder.name
+            if (Bukkit.getWorld(worldName) == null) {
+                logger.info("既存の資源ワールド $worldName をロードしています...")
+                val creator = WorldCreator(worldName)
+                
+                // 環境設定の復元
+                val type = resourceConfigs.entries.find { key.startsWith(it.value.baseName) }?.key ?: "normal"
+                when (type.lowercase()) {
+                    "nether" -> creator.environment(World.Environment.NETHER)
+                    "end" -> creator.environment(World.Environment.THE_END)
+                    else -> creator.environment(World.Environment.NORMAL)
+                }
+                
+                if (creator.createWorld() != null) {
+                    readyWorlds.add(worldName)
+                    logger.info("資源ワールド $worldName のロードに成功しました。")
+                } else {
+                    logger.severe("資源ワールド $worldName のロードに失敗しました。")
+                }
+            } else {
+                readyWorlds.add(worldName)
+            }
         }
     }
 

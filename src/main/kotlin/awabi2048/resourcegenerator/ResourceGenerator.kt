@@ -24,6 +24,9 @@ class ResourceGenerator : JavaPlugin() {
         
         // 設定のロード
         ConfigManager.load(config)
+        
+        // 既存の資源ワールドをロード
+        WorldManager.loadExistingWorlds()
 
         pluginLogger.info("ResourceGenerator (Kotlin) が有効になりました。")
         
