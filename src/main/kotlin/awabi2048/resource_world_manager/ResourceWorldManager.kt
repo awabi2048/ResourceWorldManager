@@ -1,15 +1,15 @@
-package awabi2048.resourcegenerator
+package awabi2048.resource_world_manager
 
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.logging.Logger
 
 /**
- * ResourceGeneratorプラグインのメインクラスです。
+ * ResourceWorldManagerプラグインのメインクラスです。
  */
-class ResourceGenerator : JavaPlugin() {
+class ResourceWorldManager : JavaPlugin() {
 
     companion object {
-        lateinit var instance: ResourceGenerator
+        lateinit var instance: ResourceWorldManager
             private set
     }
 
@@ -28,7 +28,7 @@ class ResourceGenerator : JavaPlugin() {
         // 既存の資源ワールドをロード
         WorldManager.loadExistingWorlds()
 
-        pluginLogger.info("ResourceGenerator (Kotlin) が有効になりました。")
+        pluginLogger.info("ResourceWorldManagerが有効になりました。")
         
         // コマンドの登録
         val resourceCommand = ResourceCommand()
@@ -43,6 +43,6 @@ class ResourceGenerator : JavaPlugin() {
 
     override fun onDisable() {
         // プラグインが無効化された時の処理
-        pluginLogger.info("ResourceGenerator (Kotlin) が無効になりました。")
+        pluginLogger.info("ResourceWorldManagerが無効になりました。")
     }
 }

@@ -1,4 +1,4 @@
-package awabi2048.resourcegenerator
+package awabi2048.resource_world_manager
 
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
@@ -45,11 +45,6 @@ class ResourceCommand : CommandExecutor, TabCompleter {
             }
 
             "teleport" -> {
-                if (sender !is Player) {
-                    sender.sendMessage("§cこのコマンドはプレイヤーのみ実行可能です。")
-                    return true
-                }
-
                 if (!hasPluginPermission(sender, "resource.teleport")) {
                     sender.sendMessage("§c権限がありません。")
                     return true
@@ -75,7 +70,12 @@ class ResourceCommand : CommandExecutor, TabCompleter {
                         return true
                     }
                 } else {
-                    sender
+                    if (sender is Player) {
+                        sender
+                    } else {
+                        sender.sendMessage("§cこの形式のコマンドはプレイヤーのみ実行可能です。プレイヤーを指定してください。")
+                        return true
+                    }
                 }
 
                 WorldManager.teleportToResourceWorld(targetPlayer, type, variation)
@@ -87,11 +87,11 @@ class ResourceCommand : CommandExecutor, TabCompleter {
                     sender.sendMessage("§c権限がありません。")
                     return true
                 }
-                val plugin = ResourceGenerator.instance
+                val plugin = ResourceWorldManager.instance
                 plugin.saveDefaultConfig()
                 plugin.reloadConfig()
                 ConfigManager.load(plugin.config)
-                sender.sendMessage("§a[ResourceGenerator] 設定を再読み込みしました。")
+                sender.sendMessage("§a[ResourceWorldManager] 設定を再読み込みしました。")
                 return true
             }
         }

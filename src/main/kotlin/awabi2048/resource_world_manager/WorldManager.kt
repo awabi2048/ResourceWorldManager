@@ -1,4 +1,4 @@
-package awabi2048.resourcegenerator
+package awabi2048.resource_world_manager
 
 import org.bukkit.*
 import org.bukkit.entity.Player
@@ -11,7 +11,7 @@ import java.util.logging.Logger
  * 資源ワールドの管理を行うマネージャー
  */
 object WorldManager {
-    private val logger: Logger = ResourceGenerator.instance.logger
+    private val logger: Logger = ResourceWorldManager.instance.logger
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
     
     // テレポート準備ができたワールド名のセット
@@ -53,7 +53,7 @@ object WorldManager {
         val world = creator.createWorld() ?: run {
             val errorMsg = "ワールド $worldName の生成に失敗しました。"
             logger.severe(errorMsg)
-            Bukkit.broadcastMessage("§c[ResourceGenerator] $errorMsg")
+            Bukkit.broadcastMessage("§c[ResourceWorldManager] $errorMsg")
             return false
         }
 
@@ -205,7 +205,7 @@ object WorldManager {
                     this.cancel()
                 }
             }
-        }.runTaskTimer(ResourceGenerator.instance, 0L, delay)
+        }.runTaskTimer(ResourceWorldManager.instance, 0L, delay)
     }
 
     data class ChunkCoords(val x: Int, val z: Int)
@@ -233,7 +233,7 @@ object WorldManager {
             if (evacuationLoc != null) {
                 for (player in world.players) {
                     player.teleport(evacuationLoc)
-                    player.sendMessage("§e[ResourceGenerator] 資源ワールドが再生成されるため、避難しました。")
+                    player.sendMessage("§e[ResourceWorldManager] 資源ワールドが再生成されるため、避難しました。")
                 }
             }
 
@@ -337,18 +337,18 @@ object WorldManager {
         val prefix = "${resourceConfig.baseName}.${variation.lowercase()}."
         
         val world = Bukkit.getWorlds().find { it.name.startsWith(prefix) } ?: run {
-            player.sendMessage("§c[ResourceGenerator] 指定された資源ワールドが存在しません。生成してください。")
+            player.sendMessage("§c[ResourceWorldManager] 指定された資源ワールドが存在しません。生成してください。")
             return false
         }
 
         if (!isWorldReady(world.name)) {
             val progress = getPregenProgress(world.name)
-            player.sendMessage("§c[ResourceGenerator] 資源ワールドは現在準備中です。優先エリアの生成をお待ちください ($progress%)")
+            player.sendMessage("§c[ResourceWorldManager] 資源ワールドは現在準備中です。優先エリアの生成をお待ちください ($progress%)")
             return false
         }
 
         player.teleport(world.spawnLocation)
-        player.sendMessage("§a[ResourceGenerator] 資源ワールド (${type}:${variation}) に移動しました。")
+        player.sendMessage("§a[ResourceWorldManager] 資源ワールド (${type}:${variation}) に移動しました。")
         return true
     }
 }

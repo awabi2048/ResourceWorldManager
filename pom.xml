@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>me.awabi2048</groupId>
-    <artifactId>ResourceGenerator</artifactId>
-    <version>1.0.0</version>
+    <artifactId>ResourceWorldManager</artifactId>
+    <version>v1.0.1</version>
     <packaging>jar</packaging>
 
-    <name>ResourceGenerator</name>
+    <name>ResourceWorldManager</name>
 
     <properties>
         <java.version>21</java.version>

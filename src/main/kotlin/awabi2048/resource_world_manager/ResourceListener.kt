@@ -1,4 +1,4 @@
-package awabi2048.resourcegenerator
+package awabi2048.resource_world_manager
 
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -63,7 +63,7 @@ class ResourceListener : Listener {
                                     val sound = Sound.valueOf(soundName.uppercase())
                                     player.playSound(player.location, sound, 1.0f, 1.0f)
                                 } catch (e: IllegalArgumentException) {
-                                    ResourceGenerator.instance.logger.warning("Invalid start sound name: $soundName")
+                                    ResourceWorldManager.instance.logger.warning("Invalid start sound name: $soundName")
                                 }
                             }
 
@@ -84,7 +84,7 @@ class ResourceListener : Listener {
                 }
                 tickCounter++
             }
-        }.runTaskTimer(ResourceGenerator.instance, 0L, 2L) // 0.1秒間隔
+        }.runTaskTimer(ResourceWorldManager.instance, 0L, 2L) // 0.1秒間隔
     }
 
     private fun isResourceWorld(world: World): Boolean {
@@ -143,12 +143,12 @@ class ResourceListener : Listener {
                     val sound = Sound.valueOf(soundName.uppercase())
                     player.playSound(player.location, sound, 1.0f, 1.0f)
                 } catch (e: IllegalArgumentException) {
-                    ResourceGenerator.instance.logger.warning("Invalid success sound name: $soundName")
+                    ResourceWorldManager.instance.logger.warning("Invalid success sound name: $soundName")
                 }
             }
-        }.runTaskLater(ResourceGenerator.instance, 1L)
+        }.runTaskLater(ResourceWorldManager.instance, 1L)
 
-        player.sendMessage("§a[ResourceGenerator] 資源ワールドから帰還しました。")
+        player.sendMessage("§a[ResourceWorldManager] 資源ワールドから帰還しました。")
     }
 
     private fun cleanupBossBar(uuid: UUID) {

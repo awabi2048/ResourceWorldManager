@@ -1,19 +1,19 @@
-name: ResourceGenerator
-version: '1.0-SNAPSHOT'
-main: awabi2048.resourcegenerator.ResourceGenerator
+name: ResourceWorldManager
+version: 1.0.1
+main: awabi2048.resource_world_manager.ResourceWorldManager
 api-version: '1.21'
 author: awabi2048
-description: 資源ワールドを生成するプラグインです。
+description: 資源ワールドを管理するプラグインです。
 
 commands:
   resource:
     description: 資源ワールド管理コマンド
-    usage: /resource <generate|teleport>
+    usage: /resource <generate|teleport|reload>
     permission: resource.use
 
 permissions:
   resource.*:
-    description: ResourceGeneratorの全権限
+    description: ResourceWorldManagerの全権限
     children:
       resource.use: true
       resource.generate: true

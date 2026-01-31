@@ -1,4 +1,4 @@
-package awabi2048.resourcegenerator
+package awabi2048.resource_world_manager
 
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -26,11 +26,11 @@ object ConfigManager {
     private var evacuationY: Double = 64.0
     private var evacuationZ: Double = 0.5
     
-    private var broadcastSuccessMessage: String = "§a[ResourceGenerator] 資源ワールド %world_name% の生成が完了しました。"
+    private var broadcastSuccessMessage: String = "§a資源ワールド %world_name% の生成が完了しました。"
     private var consoleSuccessMessage: String = "資源ワールド %world_name% の生成に成功しました。ボーダーサイズ: %border_size%"
-    private var pregenPriorityMsg: String = "§a[ResourceGenerator] 資源ワールド %world_name% の優先エリア生成が完了しました。テレポートが可能です。"
+    private var pregenPriorityMsg: String = "§a資源ワールド %world_name% の優先エリア生成が完了しました。テレポートが可能です。"
     private var consolePregenPriorityMsg: String = "資源ワールド %world_name% の優先エリア生成が完了しました。テレポートを許可しました。"
-    private var pregenAllCompleteMsg: String = "§a[ResourceGenerator] 資源ワールド %world_name% の全エリア生成が完了しました。"
+    private var pregenAllCompleteMsg: String = "§a資源ワールド %world_name% の全エリア生成が完了しました。"
 
     private var pregenPriorityDiameter: Int = 1000
     private var pregenDelayTicks: Long = 5
@@ -62,11 +62,11 @@ object ConfigManager {
         evacuationZ = (evacSection?.getInt("z") ?: 0).toDouble() + 0.5
 
         val messageSection = fileConfig.getConfigurationSection("messages")
-        broadcastSuccessMessage = messageSection?.getString("broadcast_success") ?: "§a[ResourceGenerator] 資源ワールド %world_name% の生成が完了しました。"
+        broadcastSuccessMessage = messageSection?.getString("broadcast_success") ?: "§a資源ワールド %world_name% の生成が完了しました。"
         consoleSuccessMessage = messageSection?.getString("console_success") ?: "資源ワールド %world_name% の生成に成功しました。ボーダーサイズ: %border_size%"
-        pregenPriorityMsg = messageSection?.getString("pregen_priority_complete") ?: "§a[ResourceGenerator] 資源ワールド %world_name% の優先エリア生成が完了しました。テレポートが可能です。"
+        pregenPriorityMsg = messageSection?.getString("pregen_priority_complete") ?: "§a資源ワールド %world_name% の優先エリア生成が完了しました。テレポートが可能です。"
         consolePregenPriorityMsg = messageSection?.getString("console_priority_complete") ?: "資源ワールド %world_name% の優先エリア生成が完了しました。テレポートを許可しました。"
-        pregenAllCompleteMsg = messageSection?.getString("pregen_all_complete") ?: "§a[ResourceGenerator] 資源ワールド %world_name% の全エリア生成が完了しました。"
+        pregenAllCompleteMsg = messageSection?.getString("pregen_all_complete") ?: "§a資源ワールド %world_name% の全エリア生成が完了しました。"
 
         val pregenSection = fileConfig.getConfigurationSection("pregen")
         pregenPriorityDiameter = pregenSection?.getInt("priority_diameter") ?: 1000
