@@ -1,10 +1,6 @@
 # 資源ワールドの設定
-# 避難先の設定 (world_name, x, y, z)
-evacuation_location:
-  world: "world"
-  x: 0
-  y: 64
-  z: 0
+# 避難先のコマンド設定 (プレイヤーに実行させるコマンド)
+evacuation_command: "spawn"
 
 messages:
   broadcast_success: "§a資源ワールド【%world_name%】の生成が完了しました。"

@@ -132,8 +132,8 @@ class ResourceListener : Listener {
     }
 
     private fun teleportPlayerHome(player: Player) {
-        val dest: Location = ConfigManager.getEvacuationLocation()
-        player.teleport(dest)
+        val cmd = ConfigManager.getEvacuationCommand()
+        player.performCommand(cmd)
 
         // 成功音の再生 (1tick遅延)
         object : BukkitRunnable() {
