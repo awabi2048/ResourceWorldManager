@@ -15,6 +15,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityPortalEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.scheduler.BukkitRunnable
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -76,6 +77,12 @@ class ResourceListener : Listener {
                         } else {
                             sneakTicks.remove(uuid)
                             cleanupBossBar(uuid)
+
+                            // アクションバーに案内を表示 (issue#8)
+                            val actionBarMsg = ConfigManager.getActionBarMessage()
+                            if (actionBarMsg.isNotEmpty()) {
+                                player.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(actionBarMsg))
+                            }
                         }
                     } else {
                         sneakTicks.remove(uuid)

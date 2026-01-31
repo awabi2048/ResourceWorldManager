@@ -43,6 +43,7 @@ object ConfigManager {
 
     private var soundStart: String = "BLOCK_NOTE_BLOCK_BELL"
     private var soundSuccess: String = "ENTITY_EXPERIENCE_ORB_PICKUP"
+    private var actionBarMessage: String = "§bShift長押しでスポーンに戻ります"
 
     private val resourceConfigs = mutableMapOf<String, ResourceConfig>()
 
@@ -79,6 +80,8 @@ object ConfigManager {
         val soundSection = scaffoldSection?.getConfigurationSection("sound")
         soundStart = soundSection?.getString("start") ?: "BLOCK_NOTE_BLOCK_BELL"
         soundSuccess = soundSection?.getString("success") ?: "ENTITY_EXPERIENCE_ORB_PICKUP"
+
+        actionBarMessage = scaffoldSection?.getString("action_bar_message") ?: "§bShift長押しでスポーンに戻ります"
 
         resourceConfigs.clear()
 
@@ -118,4 +121,5 @@ object ConfigManager {
 
     fun getSoundStart(): String = soundStart
     fun getSoundSuccess(): String = soundSuccess
+    fun getActionBarMessage(): String = actionBarMessage
 }

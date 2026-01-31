@@ -16,6 +16,7 @@ pregen:
 scaffold:
   material: "GLASS"
   radius: 3
+  action_bar_message: "§bShift長押しでスポーンに戻ります"
   particle:
     type: "CLOUD"
     count: 5
