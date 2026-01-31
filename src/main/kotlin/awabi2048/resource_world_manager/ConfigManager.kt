@@ -21,10 +21,7 @@ data class ResourceConfig(
 object ConfigManager {
     private var config: FileConfiguration? = null
     
-    private var evacuationWorldName: String = "world"
-    private var evacuationX: Double = 0.5
-    private var evacuationY: Double = 64.0
-    private var evacuationZ: Double = 0.5
+    private var evacuationCommand: String = "spawn"
     
     private var broadcastSuccessMessage: String = "§a資源ワールド %world_name% の生成が完了しました。"
     private var consoleSuccessMessage: String = "資源ワールド %world_name% の生成に成功しました。ボーダーサイズ: %border_size%"
@@ -55,11 +52,7 @@ object ConfigManager {
     fun load(fileConfig: FileConfiguration) {
         config = fileConfig
 
-        val evacSection = fileConfig.getConfigurationSection("evacuation_location")
-        evacuationWorldName = evacSection?.getString("world") ?: "world"
-        evacuationX = (evacSection?.getInt("x") ?: 0).toDouble() + 0.5
-        evacuationY = (evacSection?.getInt("y") ?: 64).toDouble()
-        evacuationZ = (evacSection?.getInt("z") ?: 0).toDouble() + 0.5
+        evacuationCommand = fileConfig.getString("evacuation_command") ?: "spawn"
 
         val messageSection = fileConfig.getConfigurationSection("messages")
         broadcastSuccessMessage = messageSection?.getString("broadcast_success") ?: "§a資源ワールド %world_name% の生成が完了しました。"
@@ -103,10 +96,7 @@ object ConfigManager {
     fun getResourceConfig(type: String): ResourceConfig? = resourceConfigs[type.lowercase()]
     fun getAllResourceConfigs(): Map<String, ResourceConfig> = resourceConfigs
 
-    fun getEvacuationLocation(): Location {
-        val world = Bukkit.getWorld(evacuationWorldName) ?: Bukkit.getWorlds()[0]
-        return Location(world, evacuationX, evacuationY, evacuationZ)
-    }
+    fun getEvacuationCommand(): String = evacuationCommand
 
     fun getBroadcastSuccessMessage(): String = broadcastSuccessMessage
     fun getConsoleSuccessMessage(): String = consoleSuccessMessage

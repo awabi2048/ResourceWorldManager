@@ -229,12 +229,10 @@ object WorldManager {
             pregenProgress.remove(worldName)
             
             // プレイヤーを避難させる
-            val evacuationLoc = ConfigManager.getEvacuationLocation()
-            if (evacuationLoc != null) {
-                for (player in world.players) {
-                    player.teleport(evacuationLoc)
-                    player.sendMessage("§e[ResourceWorldManager] 資源ワールドが再生成されるため、避難しました。")
-                }
+            val evacuationCmd = ConfigManager.getEvacuationCommand()
+            for (player in world.players) {
+                player.performCommand(evacuationCmd)
+                player.sendMessage("§e[ResourceWorldManager] 資源ワールドが再生成されるため、避難しました。")
             }
 
             Bukkit.unloadWorld(world, false)
