@@ -34,7 +34,15 @@ object WorldManager {
             return false
         }
 
-        // 1. 既存の資源ワールドを削除
+        // 既存のワールド名を取得（マクロ用）
+        val existingWorldPrefix = "${resourceConfig.baseName}.${variation}."
+        val existingWorld = Bukkit.getWorlds().find { it.name.startsWith(existingWorldPrefix) }
+        val existingWorldName = existingWorld?.name
+
+        // 1. 既存の資源ワールドを削除（削除前マクロを実行）
+        if (existingWorldName != null) {
+            MacroManager.executeBeforeDelete(existingWorldName)
+        }
         deleteResourceWorld(type, variation)
 
         // 2. 新しいワールド名を決定
@@ -81,7 +89,10 @@ object WorldManager {
         // 7. 足場の生成
         createScaffold(world, spawnLoc)
 
-        // 8. 事前生成プロセスの開始
+        // 8. 生成完了後マクロの実行
+        MacroManager.executeAfterGeneration(worldName, borderSize)
+
+        // 9. 事前生成プロセスの開始
         startPregeneration(world, borderSize)
         
         return true
@@ -133,7 +144,48 @@ object WorldManager {
                 bestLoc
             }
             else -> {
-                Location(world, 0.5, (world.getHighestBlockAt(0, 0).y + 1).toDouble(), 0.5)
+                // 適切な地表を探す
+                val searchRadius = ConfigManager.getSpawnSearchRadius()
+                val maxAttempts = ConfigManager.getSpawnSearchAttempts()
+                val safeBlocks = ConfigManager.getSpawnSafeBlocks()
+                val random = java.util.Random()
+
+                // デフォルト値（見つからない場合のフォールバック）
+                var bestLoc = Location(world, 0.5, (world.getHighestBlockAt(0, 0).y + 1).toDouble(), 0.5)
+                var found = false
+
+                for (i in 1..maxAttempts) {
+                    val rx = random.nextInt(searchRadius * 2 + 1) - searchRadius
+                    val rz = random.nextInt(searchRadius * 2 + 1) - searchRadius
+                    val groundBlock = world.getHighestBlockAt(rx, rz)
+
+                    // 安全なブロックかチェック
+                    if (safeBlocks.contains(groundBlock.type)) {
+                        val y = groundBlock.y
+                        val blockAbove1 = world.getBlockAt(rx, y + 1, rz)
+                        val blockAbove2 = world.getBlockAt(rx, y + 2, rz)
+
+                        // 窒息しないかチェック（頭上に2ブロックの空間が必要）
+                        if (!blockAbove1.type.isSolid && !blockAbove2.type.isSolid) {
+                            // 水や溶岩の上ではないかチェック
+                            val material1 = blockAbove1.type
+                            val material2 = blockAbove2.type
+                            if (material1 != Material.WATER && material1 != Material.LAVA &&
+                                material2 != Material.WATER && material2 != Material.LAVA) {
+                                bestLoc = Location(world, rx + 0.5, (y + 1).toDouble(), rz + 0.5)
+                                found = true
+                                logger.info("適切なスポーン位置を発見: ($rx, ${y + 1}, $rz) (試行回数: $i)")
+                                break
+                            }
+                        }
+                    }
+                }
+
+                if (!found) {
+                    logger.warning("適切なスポーン位置が見つかりませんでした。デフォルト位置を使用します: (0, ${bestLoc.y.toInt()}, 0)")
+                }
+
+                bestLoc
             }
         }
     }
@@ -195,6 +247,9 @@ object WorldManager {
                     
                     val consoleMsg = ConfigManager.getConsolePregenPriorityMessage().replace("%world_name%", world.name)
                     logger.info(ChatColor.stripColor(consoleMsg))
+                    
+                    // 優先エリア生成完了後マクロの実行
+                    MacroManager.executeAfterPriorityPregen(world.name)
                 }
 
                 // 全完了判定
@@ -202,6 +257,10 @@ object WorldManager {
                     val msg = ConfigManager.getPregenAllCompleteMessage().replace("%world_name%", world.name)
                     logger.info(ChatColor.stripColor(msg))
                     pregenProgress.remove(world.name)
+                    
+                    // 全エリア生成完了後マクロの実行
+                    MacroManager.executeAfterAllPregen(world.name)
+                    
                     this.cancel()
                 }
             }
