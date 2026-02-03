@@ -44,6 +44,15 @@ object ConfigManager {
         Material.GRAVEL, Material.MOSS_BLOCK
     )
 
+    // ネザー用スポーン設定
+    private var netherSpawnSearchRadius: Int = 64
+    private var netherSpawnSearchAttempts: Int = 200
+    private var netherSpawnSafeBlocks: List<Material> = listOf(
+        Material.NETHERRACK, Material.SOUL_SAND, Material.SOUL_SOIL,
+        Material.BASALT, Material.BLACKSTONE, Material.NETHER_BRICKS,
+        Material.CRIMSON_NYLIUM, Material.WARPED_NYLIUM
+    )
+
     private var particleType: Particle = Particle.CLOUD
     private var particleCount: Int = 5
     private var particleSpeed: Double = 0.01
@@ -95,8 +104,19 @@ object ConfigManager {
         
         val safeBlocksList = spawnSection?.getStringList("safe_blocks")
         if (safeBlocksList != null && safeBlocksList.isNotEmpty()) {
-            spawnSafeBlocks = safeBlocksList.mapNotNull { 
-                Material.matchMaterial(it.uppercase()) 
+            spawnSafeBlocks = safeBlocksList.mapNotNull {
+                Material.matchMaterial(it.uppercase())
+            }.filter { it.isBlock }
+        }
+
+        // ネザー用スポーン設定の読み込み
+        val netherSpawnSection = fileConfig.getConfigurationSection("nether_spawn")
+        netherSpawnSearchRadius = netherSpawnSection?.getInt("search_radius") ?: 64
+        netherSpawnSearchAttempts = netherSpawnSection?.getInt("search_attempts") ?: 200
+        val netherSafeBlocksList = netherSpawnSection?.getStringList("safe_blocks")
+        if (netherSafeBlocksList != null && netherSafeBlocksList.isNotEmpty()) {
+            netherSpawnSafeBlocks = netherSafeBlocksList.mapNotNull {
+                Material.matchMaterial(it.uppercase())
             }.filter { it.isBlock }
         }
 
@@ -177,6 +197,10 @@ object ConfigManager {
     fun getSpawnSearchRadius(): Int = spawnSearchRadius
     fun getSpawnSearchAttempts(): Int = spawnSearchAttempts
     fun getSpawnSafeBlocks(): List<Material> = spawnSafeBlocks.toList()
+
+    fun getNetherSpawnSearchRadius(): Int = netherSpawnSearchRadius
+    fun getNetherSpawnSearchAttempts(): Int = netherSpawnSearchAttempts
+    fun getNetherSpawnSafeBlocks(): List<Material> = netherSpawnSafeBlocks.toList()
 
     fun getParticleType(): Particle = particleType
     fun getParticleCount(): Int = particleCount

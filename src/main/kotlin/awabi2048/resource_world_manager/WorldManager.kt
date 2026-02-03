@@ -119,15 +119,57 @@ object WorldManager {
     private fun calculateSpawnLocation(world: World): Location {
         return when (world.environment) {
             World.Environment.NETHER -> {
-                var foundY = 64.0
-                for (y in 120 downTo 1) {
-                    val block = world.getBlockAt(0, y, 0)
-                    if (block.type.isSolid) {
-                        foundY = (y + 1).toDouble()
-                        break
+                val searchRadius = ConfigManager.getNetherSpawnSearchRadius()
+                val maxAttempts = ConfigManager.getNetherSpawnSearchAttempts()
+                val safeBlocks = ConfigManager.getNetherSpawnSafeBlocks()
+                val random = java.util.Random()
+
+                // デフォルト値（見つからない場合のフォールバック）
+                var bestLoc = Location(world, 0.5, 64.0, 0.5)
+                var found = false
+
+                for (i in 1..maxAttempts) {
+                    val rx = random.nextInt(searchRadius * 2 + 1) - searchRadius
+                    val rz = random.nextInt(searchRadius * 2 + 1) - searchRadius
+
+                    // ネザーはY層を120から1まで探索
+                    var foundY = 64.0
+                    for (y in 120 downTo 1) {
+                        val block = world.getBlockAt(rx, y, rz)
+                        if (safeBlocks.contains(block.type)) {
+                            foundY = (y + 1).toDouble()
+                            break
+                        }
+                    }
+
+                    val groundBlock = world.getBlockAt(rx, foundY.toInt() - 1, rz)
+
+                    // 安全なブロックかチェック
+                    if (safeBlocks.contains(groundBlock.type)) {
+                        val y = foundY.toInt() - 1
+                        val blockAbove1 = world.getBlockAt(rx, y + 1, rz)
+                        val blockAbove2 = world.getBlockAt(rx, y + 2, rz)
+
+                        // 窒息しないかチェック（頭上に2ブロックの空間が必要）
+                        if (!blockAbove1.type.isSolid && !blockAbove2.type.isSolid) {
+                            // 溶岩の上ではないかチェック
+                            val material1 = blockAbove1.type
+                            val material2 = blockAbove2.type
+                            if (material1 != Material.LAVA && material2 != Material.LAVA) {
+                                bestLoc = Location(world, rx + 0.5, (y + 1).toDouble(), rz + 0.5)
+                                found = true
+                                logger.info("ネザーの適切なスポーン位置を発見: ($rx, ${y + 1}, $rz) (試行回数: $i)")
+                                break
+                            }
+                        }
                     }
                 }
-                Location(world, 0.5, foundY, 0.5)
+
+                if (!found) {
+                    logger.warning("ネザーで適切なスポーン位置が見つかりませんでした。デフォルト位置を使用します: (0, ${bestLoc.y.toInt()}, 0)")
+                }
+
+                bestLoc
             }
             World.Environment.THE_END -> {
                 var bestLoc = Location(world, 0.5, (world.getHighestBlockAt(0, 0).y + 1).toDouble(), 0.5)
@@ -298,30 +340,65 @@ object WorldManager {
             logger.info("ワールド $worldName をアンロードしました。")
         }
 
-        // ファイルシステム上のデータを削除
-        val worldContainer = Bukkit.getWorldContainer()
-        val files = worldContainer.listFiles() ?: return
-        for (file in files) {
-            if (file.isDirectory && file.name.startsWith(prefix)) {
-                deleteWorldFolder(file)
-                logger.info("ワールドフォルダ ${file.name} を削除しました。")
-            }
-        }
-    }
-
-    private fun deleteWorldFolder(path: java.io.File) {
-        if (path.exists()) {
-            val files = path.listFiles()
-            if (files != null) {
+        // ワールドアンロード後、ファイルが完全に解放されるまで少し待機
+        // 非同期で削除処理を実行
+        object : BukkitRunnable() {
+            private var attempts = 0
+            private val maxAttempts = 5
+            
+            override fun run() {
+                val worldContainer = Bukkit.getWorldContainer()
+                val files = worldContainer.listFiles() ?: return
+                var hasRemainingFiles = false
+                
                 for (file in files) {
-                    if (file.isDirectory) {
-                        deleteWorldFolder(file)
-                    } else {
-                        file.delete()
+                    if (file.isDirectory && file.name.startsWith(prefix)) {
+                        if (deleteWorldFolder(file)) {
+                            logger.info("ワールドフォルダ ${file.name} を削除しました。")
+                        } else {
+                            hasRemainingFiles = true
+                            logger.warning("ワールドフォルダ ${file.name} の削除に失敗しました。リトライします (${attempts + 1}/${maxAttempts})")
+                        }
+                    }
+                }
+                
+                attempts++
+                if (hasRemainingFiles && attempts < maxAttempts) {
+                    // リトライ（1秒後）
+                    this.runTaskLater(ResourceWorldManager.instance, 20L)
+                } else {
+                    this.cancel()
+                    if (hasRemainingFiles) {
+                        logger.severe("ワールドフォルダの削除が完了しませんでした。手動での削除が必要かもしれません。")
                     }
                 }
             }
-            path.delete()
+        }.runTaskLater(ResourceWorldManager.instance, 20L) // 1秒後に最初の削除を試行
+    }
+
+    private fun deleteWorldFolder(path: java.io.File): Boolean {
+        if (!path.exists()) return true
+        
+        val files = path.listFiles()
+        if (files != null) {
+            for (file in files) {
+                if (file.isDirectory) {
+                    if (!deleteWorldFolder(file)) {
+                        logger.warning("ディレクトリの削除に失敗しました: ${file.absolutePath}")
+                    }
+                } else {
+                    if (!file.delete()) {
+                        logger.warning("ファイルの削除に失敗しました: ${file.absolutePath}")
+                    }
+                }
+            }
+        }
+        
+        return if (path.delete()) {
+            true
+        } else {
+            logger.warning("フォルダの削除に失敗しました: ${path.absolutePath}")
+            false
         }
     }
 
@@ -376,12 +453,14 @@ object WorldManager {
                 
                 if (creator.createWorld() != null) {
                     readyWorlds.add(worldName)
+                    pregenProgress[worldName] = 100 // 既存ワールドは100%完了とみなす
                     logger.info("資源ワールド $worldName のロードに成功しました。")
                 } else {
                     logger.severe("資源ワールド $worldName のロードに失敗しました。")
                 }
             } else {
                 readyWorlds.add(worldName)
+                pregenProgress[worldName] = 100 // 既存ワールドは100%完了とみなす
             }
         }
     }
