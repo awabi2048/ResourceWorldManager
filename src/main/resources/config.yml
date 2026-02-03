@@ -42,6 +42,20 @@ spawn:
     - "GRAVEL"
     - "MOSS_BLOCK"
 
+# ネザー用スポーン位置検索の設定
+nether_spawn:
+  search_radius: 64
+  search_attempts: 200
+  safe_blocks:
+    - "NETHERRACK"
+    - "SOUL_SAND"
+    - "SOUL_SOIL"
+    - "BASALT"
+    - "BLACKSTONE"
+    - "NETHER_BRICKS"
+    - "CRIMSON_NYLIUM"
+    - "WARPED_NYLIUM"
+
 # マクロ設定 - 資源ワールドの各タイミングでコンソールコマンドを実行
 macros:
   # ワールド削除前に実行されるコマンド
