@@ -28,8 +28,11 @@ object WorldManager {
         val priorityChunksCount: Int
     )
 
-    // 事前読み込みタスクの追跡 (ワールド名 -> TaskInfo)
-    private val pregenTasks = mutableMapOf<String, PregenTaskInfo>()
+    // 事前読み込みタスクの追跡 (ワールド名 -> TaskInfo) - 管理機能用
+    private val pregenTaskInfos = mutableMapOf<String, PregenTaskInfo>()
+
+    // 実行中の事前生成タスク (ワールド名 -> BukkitRunnable) - 中断・再開用
+    private val pregenTasks = mutableMapOf<String, BukkitRunnable>()
 
     // 優先エリア完了時間 (ワールド名 -> 完了時刻)
     private val priorityCompleteTime = mutableMapOf<String, Long>()
@@ -253,6 +256,18 @@ object WorldManager {
      * チャンクの事前生成を開始する
      */
     private fun startPregeneration(world: World, borderSize: Int) {
+        startPregeneration(world, borderSize, 0, false, false)
+    }
+
+    /**
+     * チャンクの事前生成を開始する（中断からの再開対応）
+     */
+    private fun startPregeneration(world: World, borderSize: Int, startIndex: Int, priorityCompleted: Boolean, allCompleted: Boolean) {
+        if (allCompleted) {
+            logger.info("ワールド ${world.name} の事前生成は既に完了しています。")
+            return
+        }
+
         val priorityDiameter = ConfigManager.getPregenPriorityDiameter()
         val delay = ConfigManager.getPregenDelayTicks()
         val batchSize = ConfigManager.getPregenBatchSize()
@@ -276,9 +291,20 @@ object WorldManager {
         val totalChunks = sortedChunks.size
         val startTime = System.currentTimeMillis()
 
-        val runnable = object : BukkitRunnable() {
-            var index = 0
+        // 状態の初期化・更新
+        val state = PregenerationStateManager.PregenState(
+            worldName = world.name,
+            borderSize = borderSize,
+            currentIndex = startIndex,
+            priorityCompleted = priorityCompleted,
+            allCompleted = false
+        )
+        PregenerationStateManager.setState(state)
+
+        val task = object : BukkitRunnable() {
+            var index = startIndex
             var lastReportedPercent = -1
+            var lastSavedPercent = -1
 
             override fun run() {
                 val endIdx = Math.min(index + batchSize, totalChunks)
@@ -299,6 +325,13 @@ object WorldManager {
                     lastReportedPercent = percent
                 }
 
+                // 定期的に状態を保存（10%ごと）
+                if (percent / 10 > lastSavedPercent / 10) {
+                    PregenerationStateManager.updateState(world.name) { it.currentIndex = index }
+                    PregenerationStateManager.save()
+                    lastSavedPercent = percent
+                }
+
                 // 優先ゾーン完了判定
                 if (index >= priorityChunks.size && !readyWorlds.contains(world.name)) {
                     readyWorlds.add(world.name)
@@ -311,6 +344,9 @@ object WorldManager {
 
                     // 優先エリア生成完了後マクロの実行
                     MacroManager.executeAfterPriorityPregen(world.name)
+
+                    PregenerationStateManager.updateState(world.name) { it.priorityCompleted = true }
+                    PregenerationStateManager.save()
                 }
 
                 // 全完了判定
@@ -319,12 +355,12 @@ object WorldManager {
                     logger.info(ChatColor.stripColor(msg))
                     pregenProgress.remove(world.name)
                     allCompleteTime[world.name] = System.currentTimeMillis()
+                    pregenTaskInfos.remove(world.name)
+                    pregenTasks.remove(world.name)
+                    PregenerationStateManager.remove(world.name)
 
                     // 全エリア生成完了後マクロの実行
                     MacroManager.executeAfterAllPregen(world.name)
-
-                    // タスクの追跡を解除
-                    pregenTasks.remove(world.name)
 
                     this.cancel()
                 }
@@ -332,16 +368,62 @@ object WorldManager {
         }
 
         // タスクを開始して情報を保存
-        runnable.runTaskTimer(ResourceWorldManager.instance, 0L, delay)
-        val taskInfo = PregenTaskInfo(runnable, startTime, borderSize, totalChunks, priorityChunks.size)
-        pregenTasks[world.name] = taskInfo
+        task.runTaskTimer(ResourceWorldManager.instance, 0L, delay)
+        val taskInfo = PregenTaskInfo(task, startTime, borderSize, totalChunks, priorityChunks.size)
+        pregenTaskInfos[world.name] = taskInfo
+        pregenTasks[world.name] = task
     }
 
     data class ChunkCoords(val x: Int, val z: Int)
 
     fun isWorldReady(worldName: String): Boolean = readyWorlds.contains(worldName)
-    
+
     fun getPregenProgress(worldName: String): Int = pregenProgress[worldName] ?: 0
+
+    /**
+     * すべての事前生成タスクをキャンセルする
+     */
+    fun cancelAllPregenTasks() {
+        logger.info("すべての事前生成タスクをキャンセルしています...")
+        for ((worldName, taskInfo) in pregenTaskInfos) {
+            taskInfo.runnable.cancel()
+            logger.info("ワールド $worldName の事前生成タスクをキャンセルしました。")
+        }
+        pregenTaskInfos.clear()
+        pregenTasks.clear()
+
+        // 現在の状態を保存
+        PregenerationStateManager.save()
+        logger.info("事前生成の状態を保存しました。")
+    }
+
+    /**
+     * 中断されていた事前生成を再開する
+     */
+    fun resumePregeneration() {
+        logger.info("中断されていた事前生成をチェックしています...")
+
+        val states = PregenerationStateManager.getAllStates()
+        for (state in states.values) {
+            if (state.allCompleted) {
+                continue
+            }
+
+            val world = Bukkit.getWorld(state.worldName)
+            if (world == null) {
+                logger.warning("ワールド ${state.worldName} が見つかりません。事前生成をスキップします。")
+                PregenerationStateManager.remove(state.worldName)
+                continue
+            }
+
+            if (readyWorlds.contains(state.worldName) && !state.priorityCompleted) {
+                readyWorlds.add(state.worldName)
+            }
+
+            logger.info("ワールド ${state.worldName} の事前生成をインデックス ${state.currentIndex} から再開します...")
+            startPregeneration(world, state.borderSize, state.currentIndex, state.priorityCompleted, false)
+        }
+    }
 
     /**
      * 指定されたリソースタイプとバリエーションに該当する既存ワールドを削除する
@@ -356,6 +438,15 @@ object WorldManager {
             val worldName = world.name
             readyWorlds.remove(worldName)
             pregenProgress.remove(worldName)
+
+            // 事前生成タスクをキャンセル
+            pregenTaskInfos[worldName]?.runnable?.cancel()
+            pregenTaskInfos.remove(worldName)
+            pregenTasks[worldName]?.cancel()
+            pregenTasks.remove(worldName)
+
+            // 状態を削除
+            PregenerationStateManager.remove(worldName)
             
             // プレイヤーを避難させる
             val evacuationCmd = ConfigManager.getEvacuationCommand()

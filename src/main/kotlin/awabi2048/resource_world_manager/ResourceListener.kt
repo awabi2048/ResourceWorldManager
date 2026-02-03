@@ -27,10 +27,11 @@ class ResourceListener : Listener {
     private val sneakTicks = ConcurrentHashMap<UUID, Int>()
     private val bossBars = ConcurrentHashMap<UUID, BossBar>()
     private var tickCounter: Long = 0
+    private var monitorTask: BukkitRunnable? = null
 
     init {
         // 定期的にスニーク状態と足場内判定を確認するタスク
-        object : BukkitRunnable() {
+        monitorTask = object : BukkitRunnable() {
             override fun run() {
                 for (player in Bukkit.getOnlinePlayers()) {
                     val uuid = player.uniqueId
@@ -91,7 +92,16 @@ class ResourceListener : Listener {
                 }
                 tickCounter++
             }
-        }.runTaskTimer(ResourceWorldManager.instance, 0L, 2L) // 0.1秒間隔
+        }
+        monitorTask?.runTaskTimer(ResourceWorldManager.instance, 0L, 2L) // 0.1秒間隔
+    }
+
+    /**
+     * 監視タスクをキャンセルする
+     */
+    fun cancelMonitorTask() {
+        monitorTask?.cancel()
+        monitorTask = null
     }
 
     private fun isResourceWorld(world: World): Boolean {

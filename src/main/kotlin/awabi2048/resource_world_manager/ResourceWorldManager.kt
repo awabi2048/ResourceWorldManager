@@ -14,6 +14,7 @@ class ResourceWorldManager : JavaPlugin() {
     }
 
     private val pluginLogger: Logger = logger
+    private var resourceListener: ResourceListener? = null
 
     override fun onEnable() {
         // プラグインが有効化された時の処理
@@ -24,6 +25,9 @@ class ResourceWorldManager : JavaPlugin() {
 
         // 設定のロード
         ConfigManager.load(config)
+
+        // 事前生成の状態を読み込み
+        PregenerationStateManager.load()
 
         // 既存の資源ワールドをロード
         WorldManager.loadExistingWorlds()
@@ -38,17 +42,26 @@ class ResourceWorldManager : JavaPlugin() {
         }
 
         // リスナーの登録
-        server.pluginManager.registerEvents(ResourceListener(), this)
+        resourceListener = ResourceListener()
+        server.pluginManager.registerEvents(resourceListener!!, this)
 
         // スコアボードマネージャーを初期化
         ScoreboardManager.init()
+
+        // 中断されていた事前生成を再開
+        WorldManager.resumePregeneration()
     }
 
     override fun onDisable() {
+        // すべての事前生成タスクをキャンセル
+        WorldManager.cancelAllPregenTasks()
+
+        // リスナーのタスクをキャンセル
+        resourceListener?.cancelMonitorTask()
+
         // スコアボードマネージャーを終了
         ScoreboardManager.disable()
 
-        // プラグインが無効化された時の処理
         pluginLogger.info("ResourceWorldManagerが無効になりました。")
     }
 }
