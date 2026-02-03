@@ -26,6 +26,48 @@ scaffold:
     start: "BLOCK_NOTE_BLOCK_BELL"
     success: "ENTITY_EXPERIENCE_ORB_PICKUP"
 
+# スポーン位置検索の設定
+spawn:
+  search_radius: 64
+  search_attempts: 200
+  safe_blocks:
+    - "GRASS_BLOCK"
+    - "DIRT"
+    - "COARSE_DIRT"
+    - "PODZOL"
+    - "STONE"
+    - "COBBLESTONE"
+    - "SAND"
+    - "SANDSTONE"
+    - "GRAVEL"
+    - "MOSS_BLOCK"
+
+# マクロ設定 - 資源ワールドの各タイミングでコンソールコマンドを実行
+macros:
+  # ワールド削除前に実行されるコマンド
+  before_delete:
+    enabled: false
+    commands:
+      - "say 資源ワールドの削除を開始します"
+  
+  # ワールド生成完了後に実行されるコマンド
+  after_generation:
+    enabled: false
+    commands:
+      - "say 資源ワールド%world_name%が生成されました"
+  
+  # 優先エリア生成完了後に実行されるコマンド
+  after_priority_pregen:
+    enabled: false
+    commands:
+      - "say 資源ワールド%world_name%の優先エリアが生成完了しました"
+  
+  # 全エリア生成完了後に実行されるコマンド
+  after_all_pregen:
+    enabled: false
+    commands:
+      - "say 資源ワールド%world_name%の全エリア生成が完了しました"
+
 resources:
   normal:
     base_name: "resource_normal"
