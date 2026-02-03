@@ -21,15 +21,15 @@ class ResourceWorldManager : JavaPlugin() {
 
         // 設定ファイルの保存（デフォルト設定がない場合は作成）
         saveDefaultConfig()
-        
+
         // 設定のロード
         ConfigManager.load(config)
-        
+
         // 既存の資源ワールドをロード
         WorldManager.loadExistingWorlds()
 
         pluginLogger.info("ResourceWorldManagerが有効になりました。")
-        
+
         // コマンドの登録
         val resourceCommand = ResourceCommand()
         getCommand("resource")?.apply {
@@ -39,9 +39,15 @@ class ResourceWorldManager : JavaPlugin() {
 
         // リスナーの登録
         server.pluginManager.registerEvents(ResourceListener(), this)
+
+        // スコアボードマネージャーを初期化
+        ScoreboardManager.init()
     }
 
     override fun onDisable() {
+        // スコアボードマネージャーを終了
+        ScoreboardManager.disable()
+
         // プラグインが無効化された時の処理
         pluginLogger.info("ResourceWorldManagerが無効になりました。")
     }

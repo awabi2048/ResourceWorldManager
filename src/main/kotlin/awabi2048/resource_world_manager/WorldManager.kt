@@ -16,9 +16,26 @@ object WorldManager {
     
     // テレポート準備ができたワールド名のセット
     private val readyWorlds = mutableSetOf<String>()
-    
+
     // 現在の生成進捗 (ワールド名 -> 進捗率%)
     private val pregenProgress = mutableMapOf<String, Int>()
+
+    data class PregenTaskInfo(
+        val runnable: BukkitRunnable,
+        val startTime: Long,
+        val borderSize: Int,
+        val totalChunks: Int,
+        val priorityChunksCount: Int
+    )
+
+    // 事前読み込みタスクの追跡 (ワールド名 -> TaskInfo)
+    private val pregenTasks = mutableMapOf<String, PregenTaskInfo>()
+
+    // 優先エリア完了時間 (ワールド名 -> 完了時刻)
+    private val priorityCompleteTime = mutableMapOf<String, Long>()
+
+    // 全エリア完了時刻 (ワールド名 -> 完了時刻)
+    private val allCompleteTime = mutableMapOf<String, Long>()
 
     /**
      * 資源ワールドを生成する
@@ -239,43 +256,44 @@ object WorldManager {
         val priorityDiameter = ConfigManager.getPregenPriorityDiameter()
         val delay = ConfigManager.getPregenDelayTicks()
         val batchSize = ConfigManager.getPregenBatchSize()
-        
+
         // 生成すべき全チャンクの座標リストを作成
         val chunks = mutableListOf<ChunkCoords>()
         val radiusChunks = (borderSize / 2 / 16) + 1
-        
+
         for (x in -radiusChunks..radiusChunks) {
             for (z in -radiusChunks..radiusChunks) {
                 chunks.add(ChunkCoords(x, z))
             }
         }
-        
+
         // 優先ゾーン（スポーン周辺）をリストの先頭に持ってくる
         val priorityRadius = (priorityDiameter / 2 / 16) + 1
         val priorityChunks = chunks.filter { Math.abs(it.x) <= priorityRadius && Math.abs(it.z) <= priorityRadius }
         val remainingChunks = chunks.filter { !priorityChunks.contains(it) }
-        
+
         val sortedChunks = priorityChunks + remainingChunks
         val totalChunks = sortedChunks.size
-        
-        object : BukkitRunnable() {
+        val startTime = System.currentTimeMillis()
+
+        val runnable = object : BukkitRunnable() {
             var index = 0
             var lastReportedPercent = -1
 
             override fun run() {
                 val endIdx = Math.min(index + batchSize, totalChunks)
-                
+
                 for (i in index until endIdx) {
                     val coords = sortedChunks[i]
                     world.getChunkAtAsync(coords.x, coords.z)
                 }
-                
+
                 index = endIdx
-                
+
                 // 進捗報告
                 val percent = (index * 100) / totalChunks
                 pregenProgress[world.name] = percent
-                
+
                 if (percent / 10 > lastReportedPercent / 10) {
                     logger.info("資源ワールド ${world.name} チャンク生成中... $percent%")
                     lastReportedPercent = percent
@@ -284,12 +302,13 @@ object WorldManager {
                 // 優先ゾーン完了判定
                 if (index >= priorityChunks.size && !readyWorlds.contains(world.name)) {
                     readyWorlds.add(world.name)
+                    priorityCompleteTime[world.name] = System.currentTimeMillis()
                     val msg = ConfigManager.getPregenPriorityMessage().replace("%world_name%", world.name)
                     Bukkit.broadcastMessage(msg)
-                    
+
                     val consoleMsg = ConfigManager.getConsolePregenPriorityMessage().replace("%world_name%", world.name)
                     logger.info(ChatColor.stripColor(consoleMsg))
-                    
+
                     // 優先エリア生成完了後マクロの実行
                     MacroManager.executeAfterPriorityPregen(world.name)
                 }
@@ -299,14 +318,23 @@ object WorldManager {
                     val msg = ConfigManager.getPregenAllCompleteMessage().replace("%world_name%", world.name)
                     logger.info(ChatColor.stripColor(msg))
                     pregenProgress.remove(world.name)
-                    
+                    allCompleteTime[world.name] = System.currentTimeMillis()
+
                     // 全エリア生成完了後マクロの実行
                     MacroManager.executeAfterAllPregen(world.name)
-                    
+
+                    // タスクの追跡を解除
+                    pregenTasks.remove(world.name)
+
                     this.cancel()
                 }
             }
-        }.runTaskTimer(ResourceWorldManager.instance, 0L, delay)
+        }
+
+        // タスクを開始して情報を保存
+        runnable.runTaskTimer(ResourceWorldManager.instance, 0L, delay)
+        val taskInfo = PregenTaskInfo(runnable, startTime, borderSize, totalChunks, priorityChunks.size)
+        pregenTasks[world.name] = taskInfo
     }
 
     data class ChunkCoords(val x: Int, val z: Int)
@@ -471,7 +499,7 @@ object WorldManager {
     fun teleportToResourceWorld(player: Player, type: String, variation: String): Boolean {
         val resourceConfig = ConfigManager.getResourceConfig(type) ?: return false
         val prefix = "${resourceConfig.baseName}.${variation.lowercase()}."
-        
+
         val world = Bukkit.getWorlds().find { it.name.startsWith(prefix) } ?: run {
             player.sendMessage("§c[ResourceWorldManager] 指定された資源ワールドが存在しません。生成してください。")
             return false
@@ -487,4 +515,65 @@ object WorldManager {
         player.sendMessage("§a[ResourceWorldManager] 資源ワールド (${type}:${variation}) に移動しました。")
         return true
     }
+
+    /**
+     * 指定された資源ワールドの事前読み込みを中断する
+     */
+    fun pausePregeneration(type: String, variation: String): Boolean {
+        val resourceConfig = ConfigManager.getResourceConfig(type) ?: return false
+        val prefix = "${resourceConfig.baseName}.${variation.lowercase()}."
+
+        val world = Bukkit.getWorlds().find { it.name.startsWith(prefix) } ?: run {
+            return false
+        }
+
+        val taskInfo = pregenTasks[world.name]
+        if (taskInfo != null) {
+            taskInfo.runnable.cancel()
+            pregenTasks.remove(world.name)
+            logger.info("資源ワールド ${world.name} の事前読み込みを中断しました。")
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * 指定された資源ワールドを停止する
+     */
+    fun closeResourceWorld(type: String, variation: String): Boolean {
+        val resourceConfig = ConfigManager.getResourceConfig(type) ?: return false
+        val prefix = "${resourceConfig.baseName}.${variation.lowercase()}."
+
+        val world = Bukkit.getWorlds().find { it.name.startsWith(prefix) } ?: run {
+            return false
+        }
+
+        // 事前読み込み中なら中断
+        val taskInfo = pregenTasks[world.name]
+        if (taskInfo != null) {
+            taskInfo.runnable.cancel()
+            pregenTasks.remove(world.name)
+            logger.info("資源ワールド ${world.name} の事前読み込みを中断しました。")
+        }
+
+        // ワールド内のプレイヤーを避難させる
+        val evacuationCmd = ConfigManager.getEvacuationCommand()
+        for (player in world.players) {
+            player.performCommand(evacuationCmd)
+            player.sendMessage("§e[ResourceWorldManager] 資源ワールドが閉鎖されたため、帰還しました。")
+        }
+
+        readyWorlds.remove(world.name)
+        pregenProgress.remove(world.name)
+        priorityCompleteTime.remove(world.name)
+        allCompleteTime.remove(world.name)
+
+        logger.info("ワールド ${world.name} を閉鎖しました。")
+        return true
+    }
+
+    fun getPregenTasks(): Map<String, PregenTaskInfo> = pregenTasks.toMap()
+    fun getPriorityCompleteTime(worldName: String): Long? = priorityCompleteTime[worldName]
+    fun getAllCompleteTime(worldName: String): Long? = allCompleteTime[worldName]
 }
