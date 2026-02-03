@@ -8,7 +8,7 @@ description: 資源ワールドを管理するプラグインです。
 commands:
   resource:
     description: 資源ワールド管理コマンド
-    usage: /resource <generate|teleport|reload>
+    usage: /resource <generate|teleport|reload|pause_pregen|close|monitor>
     permission: resource.use
 
 permissions:
@@ -19,6 +19,9 @@ permissions:
       resource.generate: true
       resource.teleport: true
       resource.reload: true
+      resource.pause_pregen: true
+      resource.close: true
+      resource.monitor: true
   resource.use:
     description: /resource コマンドを使用する権限
     default: op
@@ -31,7 +34,17 @@ permissions:
   resource.reload:
     description: 設定を再読み込みする権限
     default: op
+  resource.pause_pregen:
+    description: 資源ワールドの事前読み込みを中断する権限
+    default: op
+  resource.close:
+    description: 資源ワールドを閉鎖する権限
+    default: op
+  resource.monitor:
+    description: 資源ワールドのモニターを表示する権限
+    default: true
   craftercrossing.test:
     description: テスト用権限（プラグイン内の全権限を付与）
     children:
       resource.*: true
+

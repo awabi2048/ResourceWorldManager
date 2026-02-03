@@ -63,7 +63,7 @@ class ResourceCommand : CommandExecutor, TabCompleter {
 
                 val type = target[0]
                 val variation = target[1]
-                
+
                 val targetPlayer = if (args.size >= 3) {
                     Bukkit.getPlayer(args[2]) ?: run {
                         sender.sendMessage("§cプレイヤー ${args[2]} は見つかりません。")
@@ -94,6 +94,80 @@ class ResourceCommand : CommandExecutor, TabCompleter {
                 sender.sendMessage("§a[ResourceWorldManager] 設定を再読み込みしました。")
                 return true
             }
+
+            "pause_pregen" -> {
+                if (!hasPluginPermission(sender, "resource.pause_pregen")) {
+                    sender.sendMessage("§c権限がありません。")
+                    return true
+                }
+
+                if (args.size < 2) {
+                    sender.sendMessage("§c使用法: /resource pause_pregen <type>:<variation>")
+                    return true
+                }
+
+                val target = args[1].split(":")
+                if (target.size != 2) {
+                    sender.sendMessage("§c形式が正しくありません (例: normal:a)")
+                    return true
+                }
+
+                val type = target[0]
+                val variation = target[1]
+
+                val success = WorldManager.pausePregeneration(type, variation)
+                if (success) {
+                    sender.sendMessage("§a[ResourceWorldManager] 資源ワールド (${type}:${variation}) の事前読み込みを中断しました。")
+                } else {
+                    sender.sendMessage("§c[ResourceWorldManager] 資源ワールド (${type}:${variation}) の事前読み込みは実行されていません。")
+                }
+                return true
+            }
+
+            "close" -> {
+                if (!hasPluginPermission(sender, "resource.close")) {
+                    sender.sendMessage("§c権限がありません。")
+                    return true
+                }
+
+                if (args.size < 2) {
+                    sender.sendMessage("§c使用法: /resource close <type>:<variation>")
+                    return true
+                }
+
+                val target = args[1].split(":")
+                if (target.size != 2) {
+                    sender.sendMessage("§c形式が正しくありません (例: normal:a)")
+                    return true
+                }
+
+                val type = target[0]
+                val variation = target[1]
+
+                val success = WorldManager.closeResourceWorld(type, variation)
+                if (success) {
+                    sender.sendMessage("§a[ResourceWorldManager] 資源ワールド (${type}:${variation}) を閉鎖しました。")
+                } else {
+                    sender.sendMessage("§c[ResourceWorldManager] 資源ワールド (${type}:${variation}) が存在しません。")
+                }
+                return true
+            }
+
+            "monitor" -> {
+                if (!hasPluginPermission(sender, "resource.monitor")) {
+                    sender.sendMessage("§c権限がありません。")
+                    return true
+                }
+
+                if (sender !is Player) {
+                    sender.sendMessage("§cこのコマンドはプレイヤーのみ実行可能です。")
+                    return true
+                }
+
+                val message = ScoreboardManager.toggleMonitor(sender)
+                sender.sendMessage(message)
+                return true
+            }
         }
 
         return false
@@ -111,7 +185,10 @@ class ResourceCommand : CommandExecutor, TabCompleter {
             if (hasPluginPermission(sender, "resource.generate")) subCommands.add("generate")
             if (hasPluginPermission(sender, "resource.teleport")) subCommands.add("teleport")
             if (hasPluginPermission(sender, "resource.reload")) subCommands.add("reload")
-            
+            if (hasPluginPermission(sender, "resource.pause_pregen")) subCommands.add("pause_pregen")
+            if (hasPluginPermission(sender, "resource.close")) subCommands.add("close")
+            if (hasPluginPermission(sender, "resource.monitor")) subCommands.add("monitor")
+
             list.addAll(subCommands.filter { it.startsWith(args[0].lowercase()) })
         } else if (args.size == 2) {
             val query = args[1].lowercase()
